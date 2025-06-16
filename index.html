@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Controle de Catequese</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    input, button, textarea, select {
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    .presente { background-color: #d4edda; }
+    .ausente { background-color: #f8d7da; }
+    nav button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+<div id="login">
+  <h2>Login</h2>
+  <input type="text" id="usuario" placeholder="Usuário" />
+  <input type="password" id="senha" placeholder="Senha" />
+  <button onclick="fazerLogin()">Entrar</button>
+  <p id="erroLogin" style="color: red;"></p>
+</div>
+
+<div id="app" class="hidden">
+  <nav>
+    <button onclick="mostrarSecao('presencas')">Presenças</button>
+    <button onclick="mostrarSecao('resumoPresencas')">Resumo de Presenças</button>
+    <button onclick="mostrarSecao('tarefas')">Tarefas</button>
+    <button onclick="mostrarSecao('resumoTarefas')">Resumo de Tarefas</button>
+    <button onclick="mostrarSecao('observacoes')">Observações</button>
+  </nav>
+
+  <section id="presencas" class="hidden">
+    <h2>Controle de Presenças</h2>
+    <label>Data: <input type="date" id="dataPresenca" onchange="atualizarPresencas()" /></label>
+    <table>
+      <thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="tabelaPresencas"></tbody>
+    </table>
+  </section>
+
+  <section id="resumoPresencas" class="hidden">
+    <h2>Resumo de Presenças</h2>
+    <div id="relatorioPresencas"></div>
+  </section>
+
+  <section id="tarefas" class="hidden">
+    <h2>Controle de Tarefas</h2>
+    <label>Data: <input type="date" id="dataTarefa" onchange="atualizarTarefas()" /></label>
+    <table>
+      <thead><tr><th>Nome</th><th>Status</th><th>Ações</th></tr></thead>
+      <tbody id="tabelaTarefas"></tbody>
+    </table>
+  </section>
+
+  <section id="resumoTarefas" class="hidden">
+    <h2>Resumo de Tarefas</h2>
+    <div id="relatorioTarefas"></div>
+  </section>
+
+  <section id="observacoes" class="hidden">
+    <h2>Observações</h2>
+    <div id="listaObservacoes"></div>
+  </section>
+</div>
+
+<script>
+  const usuarios = {
+    "Gustavo": "12345678",
+    "Nilzete": "12345678"
+  };
+
+  const alunos = ["Cleber", "Kaio", "Davi Manzano", "Davi Lucas", "Joao Miguel", "Mateus"];
+  const storage = {
+    presencas: 'presencasCatequese',
+    tarefas: 'tarefasCatequese',
+    observacoes: 'observacoesCatequese'
+  };
+
+  function fazerLogin() {
+    let user = document.getElementById("usuario").value.trim();
+    let pass = document.getElementById("senha").value.trim();
+
+    // Corrige case para primeira letra maiúscula e resto minúsculo
+    if(user.length > 0) {
+      user = user.charAt(0).toUpperCase() + user.slice(1).toLowerCase();
+    }
+
+    if (usuarios[user] && usuarios[user] === pass) {
+      document.getElementById("login").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      inicializar();
+    } else {
+      document.getElementById("erroLogin").textContent = "Usuário ou senha incorretos.";
+    }
+  }
+
+  function mostrarSecao(secao) {
+    document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+    document.getElementById(secao).classList.remove("hidden");
+    if (secao === 'resumoPresencas') gerarResumoPresencas();
+    if (secao === 'resumoTarefas') gerarResumoTarefas();
+  }
+
+  function inicializar() {
+    const hoje = new Date().toISOString().split("T")[0];
+    document.getElementById("dataPresenca").value = hoje;
+    document.getElementById("dataTarefa").value = hoje;
+    atualizarPresencas();
+    atualizarTarefas();
+    atualizarObservacoes();
+  }
+
+  // --- PRESENÇAS ---
+  function atualizarPresencas() {
+    const data = document.getElementById("dataPresenca").value;
+    const presencas = JSON.parse(localStorage.getItem(storage.presencas)) || {};
+    if (!presencas[data]) {
+      presencas[data] = {};
+      alunos.forEach(nome => presencas[data][nome] = "Ausente");
+      localStorage.setItem(storage.presencas, JSON.stringify(presencas));
+    }
+
+    const tbody = document.getElementById("tabelaPresencas");
+    tbody.innerHTML = "";
+    alunos.forEach(nome => {
+      const status = presencas[data][nome];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+          <td>${nome}</td>
+          <td class="${status === 'Presente' ? 'presente' : 'ausente'}">${status}</td>
+          <td>
+            <button onclick="marcarPresenca('${data}', '${nome}', 'Presente')">Presente</button>
+            <button onclick="marcarPresenca('${data}', '${nome}', 'Ausente')">Ausente</button>
+          </td>
+        `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function marcarPresenca(data, nome, status) {
+    const presencas = JSON.parse(localStorage.getItem(storage.presencas)) || {};
+    presencas[data][nome] = status;
+    localStorage.setItem(storage.presencas, JSON.stringify(presencas));
+    atualizarPresencas();
+  }
+
+  function gerarResumoPresencas() {
+    const presencas = JSON.parse(localStorage.getItem(storage.presencas)) || {};
+    const container = document.getElementById("relatorioPresencas");
+    container.innerHTML = "";
+
+    for (const data in presencas) {
+      const bloco = document.createElement("div");
+      bloco.innerHTML = `<h4>${data}</h4>` +
+              Object.entries(presencas[data])
+                      .map(([nome, status]) => `${nome}: <strong>${status}</strong>`)
+                      .join("<br>") + "<hr>";
+      container.appendChild(bloco);
+    }
+  }
+
+  // --- TAREFAS ---
+  function atualizarTarefas() {
+    const data = document.getElementById("dataTarefa").value;
+    const tarefas = JSON.parse(localStorage.getItem(storage.tarefas)) || {};
+    if (!tarefas[data]) {
+      tarefas[data] = {};
+      alunos.forEach(nome => tarefas[data][nome] = "Não Feito");
+      localStorage.setItem(storage.tarefas, JSON.stringify(tarefas));
+    }
+
+    const tbody = document.getElementById("tabelaTarefas");
+    tbody.innerHTML = "";
+    alunos.forEach(nome => {
+      const status = tarefas[data][nome];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+          <td>${nome}</td>
+          <td>${status}</td>
+          <td>
+            <button onclick="marcarTarefa('${data}', '${nome}', 'Feito')">Feito</button>
+            <button onclick="marcarTarefa('${data}', '${nome}', 'Não Feito')">Não Feito</button>
+          </td>
+        `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function marcarTarefa(data, nome, status) {
+    const tarefas = JSON.parse(localStorage.getItem(storage.tarefas)) || {};
+    tarefas[data][nome] = status;
+    localStorage.setItem(storage.tarefas, JSON.stringify(tarefas));
+    atualizarTarefas();
+  }
+
+  function gerarResumoTarefas() {
+    const tarefas = JSON.parse(localStorage.getItem(storage.tarefas)) || {};
+    const container = document.getElementById("relatorioTarefas");
+    container.innerHTML = "";
+
+    for (const data in tarefas) {
+      const bloco = document.createElement("div");
+      bloco.innerHTML = `<h4>${data}</h4>` +
+              Object.entries(tarefas[data])
+                      .map(([nome, status]) => `${nome}: <strong>${status}</strong>`)
+                      .join("<br>") + "<hr>";
+      container.appendChild(bloco);
+    }
+  }
+
+  // --- OBSERVAÇÕES ---
+  function atualizarObservacoes() {
+    const observacoes = JSON.parse(localStorage.getItem(storage.observacoes)) || {};
+    const container = document.getElementById("listaObservacoes");
+    container.innerHTML = "";
+
+    alunos.forEach(nome => {
+      const obs = observacoes[nome] || "";
+      const div = document.createElement("div");
+      div.innerHTML = `
+          <strong>${nome}</strong><br>
+          <textarea onchange="salvarObservacao('${nome}', this.value)">${obs}</textarea>
+          <button onclick="removerObservacao('${nome}')">Apagar</button>
+          <hr>
+        `;
+      container.appendChild(div);
+    });
+  }
+
+  function salvarObservacao(nome, texto) {
+    const observacoes = JSON.parse(localStorage.getItem(storage.observacoes)) || {};
+    if (texto.trim() === "") {
+      delete observacoes[nome];
+    } else {
+      observacoes[nome] = texto;
+    }
+    localStorage.setItem(storage.observacoes, JSON.stringify(observacoes));
+    atualizarObservacoes();
+  }
+
+  function removerObservacao(nome) {
+    const observacoes = JSON.parse(localStorage.getItem(storage.observacoes)) || {};
+    delete observacoes[nome];
+    localStorage.setItem(storage.observacoes, JSON.stringify(observacoes));
+    atualizarObservacoes();
+  }
+</script>
+</body>
+</html>
