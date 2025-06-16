@@ -49,7 +49,6 @@
     <button onclick="mostrarSecao('resumoPresencas')">Resumo de Presenças</button>
     <button onclick="mostrarSecao('tarefas')">Tarefas</button>
     <button onclick="mostrarSecao('resumoTarefas')">Resumo de Tarefas</button>
-    <button onclick="mostrarSecao('observacoes')">Observações</button>
   </nav>
 
   <section id="presencas" class="hidden">
@@ -79,11 +78,6 @@
     <h2>Resumo de Tarefas</h2>
     <div id="relatorioTarefas"></div>
   </section>
-
-  <section id="observacoes" class="hidden">
-    <h2>Observações</h2>
-    <div id="listaObservacoes"></div>
-  </section>
 </div>
 
 <script>
@@ -95,8 +89,7 @@
   const alunos = ["Cleber", "Kaio", "Davi Manzano", "Davi Lucas", "Joao Miguel", "Mateus"];
   const storage = {
     presencas: 'presencasCatequese',
-    tarefas: 'tarefasCatequese',
-    observacoes: 'observacoesCatequese'
+    tarefas: 'tarefasCatequese'
   };
 
   function fazerLogin() {
@@ -130,7 +123,6 @@
     document.getElementById("dataTarefa").value = hoje;
     atualizarPresencas();
     atualizarTarefas();
-    atualizarObservacoes();
   }
 
   // --- PRESENÇAS ---
@@ -229,43 +221,6 @@
                       .join("<br>") + "<hr>";
       container.appendChild(bloco);
     }
-  }
-
-  // --- OBSERVAÇÕES ---
-  function atualizarObservacoes() {
-    const observacoes = JSON.parse(localStorage.getItem(storage.observacoes)) || {};
-    const container = document.getElementById("listaObservacoes");
-    container.innerHTML = "";
-
-    alunos.forEach(nome => {
-      const obs = observacoes[nome] || "";
-      const div = document.createElement("div");
-      div.innerHTML = `
-          <strong>${nome}</strong><br>
-          <textarea onchange="salvarObservacao('${nome}', this.value)">${obs}</textarea>
-          <button onclick="removerObservacao('${nome}')">Apagar</button>
-          <hr>
-        `;
-      container.appendChild(div);
-    });
-  }
-
-  function salvarObservacao(nome, texto) {
-    const observacoes = JSON.parse(localStorage.getItem(storage.observacoes)) || {};
-    if (texto.trim() === "") {
-      delete observacoes[nome];
-    } else {
-      observacoes[nome] = texto;
-    }
-    localStorage.setItem(storage.observacoes, JSON.stringify(observacoes));
-    atualizarObservacoes();
-  }
-
-  function removerObservacao(nome) {
-    const observacoes = JSON.parse(localStorage.getItem(storage.observacoes)) || {};
-    delete observacoes[nome];
-    localStorage.setItem(storage.observacoes, JSON.stringify(observacoes));
-    atualizarObservacoes();
   }
 </script>
 </body>
